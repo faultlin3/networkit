@@ -28,6 +28,10 @@ class PageRank final : public Centrality {
 public:
     enum Norm { L1Norm, L2Norm };
 
+
+    static constexpr double DEFAULT_DAMP = 0.85;
+    static constexpr double DEFAULT_TOL = 1e-8;
+
     /**
      * Constructs the PageRank class for the Graph @a G
      *
@@ -35,7 +39,7 @@ public:
      * @param[in] damp Damping factor of the PageRank algorithm.
      * @param[in] tol Error tolerance for PageRank iteration.
      */
-    PageRank(const Graph &G, double damp = 0.85, double tol = 1e-8);
+    PageRank(const Graph &G, double damp = DEFAULT_DAMP, double tol = DEFAULT_TOL, std::vector<node> personalization = std::vector<node>());
 
     /**
      * Computes page rank on the graph passed in constructor.
@@ -67,6 +71,7 @@ public:
 private:
     double damp;
     double tol;
+    std::vector<node> personalization;
     count iterations;
 };
 

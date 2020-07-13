@@ -13,8 +13,8 @@
 
 namespace NetworKit {
 
-PageRank::PageRank(const Graph &G, double damp, double tol)
-    : Centrality(G, true), damp(damp), tol(tol) {}
+PageRank::PageRank(const Graph &G, double damp, double tol, std::vector<node> personalization)
+    : Centrality(G, true), damp(damp), tol(tol), personalization(personalization) {}
 
 void PageRank::run() {
     Aux::SignalHandler handler;
