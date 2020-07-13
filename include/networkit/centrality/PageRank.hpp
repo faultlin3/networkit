@@ -39,7 +39,7 @@ public:
      * @param[in] tol Error tolerance for PageRank iteration.
      */
     PageRank(const Graph &G, double damp = DEFAULT_DAMP, double tol = DEFAULT_TOL,
-             std::vector<node> personalization = std::vector<node>());
+             const std::vector<node> &personalization = std::vector<node>());
 
     /**
      * Computes page rank on the graph passed in constructor.
@@ -71,7 +71,7 @@ public:
 private:
     double damp;
     double tol;
-    std::vector<node> personalization;
+    const std::vector<node> personalization;
     count iterations;
 };
 

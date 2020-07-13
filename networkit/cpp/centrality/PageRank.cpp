@@ -13,17 +13,33 @@
 
 namespace NetworKit {
 
-PageRank::PageRank(const Graph &G, double damp, double tol, std::vector<node> personalization)
+PageRank::PageRank(const Graph &G, double damp, double tol,
+                   const std::vector<node> &personalization)
     : Centrality(G, true), damp(damp), tol(tol), personalization(personalization) {}
 
 void PageRank::run() {
     Aux::SignalHandler handler;
     const auto n = G.numberOfNodes();
     const auto z = G.upperNodeIdBound();
+    const auto p = personalization.size();
 
-    const auto teleportProb = (1.0 - damp) / static_cast<double>(n);
     scoreData.resize(z, 1.0 / static_cast<double>(n));
     std::vector<double> pr = scoreData;
+
+    double teleportProb;
+    std::vector<bool> inPersonalization(0);
+    if (p == 0) {
+        teleportProb = (1.0 - damp) / static_cast<double>(n);
+        inPersonalization.resize(z, true);
+    } else {
+        teleportProb = (1.0 - damp) / static_cast<double>(p);
+
+        inPersonalization.resize(z, false);
+        std::vector<node>::const_iterator it;
+        for (it = personalization.begin(); it != personalization.end(); ++it) {
+            inPersonalization[*it] = true;
+        }
+    }
 
     std::vector<double> deg(z, 0.0);
     G.parallelForNodes([&](const node u) { deg[u] = static_cast<double>(G.weightedDegree(u)); });
@@ -61,7 +77,7 @@ void PageRank::run() {
                 pr[u] += scoreData[v] * w / deg[v];
             });
             pr[u] *= damp;
-            pr[u] += teleportProb;
+            pr[u] += teleportProb * inPersonalization[u];
         });
 
         ++iterations;
