@@ -594,6 +594,40 @@ TEST_F(CentralityGTest, testPageRankCentrality) {
     EXPECT_NEAR(0.0565, fabs(cen[7]), tol);
 }
 
+TEST_F(CentralityGTest, testPageRankWithPersonalization) {
+    /* Graph:
+     0 --> 1 --> 2 --> 3 --> 4
+
+     All Edges with weight 1
+    */
+    /* Feature Set:
+     {0}
+    */
+    count n = 5;
+    Graph G(n, false, true);
+    
+    G.addEdge(0, 1);
+    G.addEdge(1, 2);
+    G.addEdge(2, 3);
+    G.addEdge(3, 4);
+
+    std::vector<node> personalization(1, 0);
+
+    double damp = 0.85;
+    PageRank centrality(G, damp, PageRank::DEFAULT_TOL, personalization);
+    centrality.run();
+    std::vector<double> cen = centrality.scores();
+
+    // compare to results from NetworkX implementation
+    const double tol = 1e-4;
+    EXPECT_NEAR(0.2696, fabs(cen[0]), tol);
+    EXPECT_NEAR(0.2292, fabs(cen[1]), tol);
+    EXPECT_NEAR(0.1948, fabs(cen[2]), tol);
+    EXPECT_NEAR(0.1656, fabs(cen[3]), tol);
+    EXPECT_NEAR(0.1408, fabs(cen[4]), tol);
+}
+
+
 TEST_F(CentralityGTest, benchSequentialBetweennessCentralityOnRealGraph) {
     METISGraphReader reader;
     Graph G = reader.read("input/celegans_metabolic.graph");
