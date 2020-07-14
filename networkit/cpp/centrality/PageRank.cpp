@@ -21,30 +21,50 @@ void PageRank::run() {
     Aux::SignalHandler handler;
     const auto n = G.numberOfNodes();
     const auto z = G.upperNodeIdBound();
-    const auto p = personalization.size();
 
+
+    auto teleportProb = (1.0 - damp) / static_cast<double>(n);
     scoreData.resize(z, 1.0 / static_cast<double>(n));
     std::vector<double> pr = scoreData;
 
-    double teleportProb;
-    std::vector<bool> inPersonalization(0);
-    if (p == 0) {
-        teleportProb = (1.0 - damp) / static_cast<double>(n);
-        inPersonalization.resize(z, true);
-    } else {
-        teleportProb = (1.0 - damp) / static_cast<double>(p);
+    // Verify the personalization vector
+    std::vector<node>::const_iterator it;
+    auto p = personalization.size();
+    for (it = personalization.begin(); it != personalization.end(); ++it) {
+        if (!G.hasNode(*it)) {
+            --p;
+            WARN("Node ", *it, " is in the personalization vector but doesn't exist in the Graph");
+        }
+    }
 
+    bool isPersonalized = (p > 0);
+    std::vector<bool> inPersonalization;
+    if (isPersonalized) {
         inPersonalization.resize(z, false);
         std::vector<node>::const_iterator it;
         for (it = personalization.begin(); it != personalization.end(); ++it) {
-            inPersonalization[*it] = true;
+            if (G.hasNode(*it)) {
+                inPersonalization[*it] = true;
+            }
         }
+        
+        teleportProb = (1.0 - damp) / static_cast<double>(p);
     }
 
     std::vector<double> deg(z, 0.0);
     G.parallelForNodes([&](const node u) { deg[u] = static_cast<double>(G.weightedDegree(u)); });
 
     iterations = 0;
+
+    auto teleport = [&](const node u) {
+        if (isPersonalized) {
+            if (inPersonalization[u]) {
+                pr[u] += teleportProb;
+            }
+        } else {
+            pr[u] += teleportProb;
+        }
+    };
 
     auto sumL1Norm = [&](const node u) { return std::abs(scoreData[u] - pr[u]); };
 
@@ -77,7 +97,7 @@ void PageRank::run() {
                 pr[u] += scoreData[v] * w / deg[v];
             });
             pr[u] *= damp;
-            pr[u] += teleportProb * inPersonalization[u];
+            teleport(u);
         });
 
         ++iterations;
