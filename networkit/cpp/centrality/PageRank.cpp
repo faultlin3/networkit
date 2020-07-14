@@ -22,7 +22,6 @@ void PageRank::run() {
     const auto n = G.numberOfNodes();
     const auto z = G.upperNodeIdBound();
 
-
     auto teleportProb = (1.0 - damp) / static_cast<double>(n);
     scoreData.resize(z, 1.0 / static_cast<double>(n));
     std::vector<double> pr = scoreData;
@@ -47,7 +46,7 @@ void PageRank::run() {
                 inPersonalization[*it] = true;
             }
         }
-        
+
         teleportProb = (1.0 - damp) / static_cast<double>(p);
     }
 
