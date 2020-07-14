@@ -37,6 +37,7 @@ public:
      * @param[in] G Graph to be processed.
      * @param[in] damp Damping factor of the PageRank algorithm.
      * @param[in] tol Error tolerance for PageRank iteration.
+     * @param[in] personalization Personalization vector for PageRank iteration.
      */
     PageRank(const Graph &G, double damp = DEFAULT_DAMP, double tol = DEFAULT_TOL,
              const std::vector<node> &personalization = std::vector<node>());
