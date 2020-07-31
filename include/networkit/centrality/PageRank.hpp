@@ -38,9 +38,11 @@ public:
      * @param[in] damp Damping factor of the PageRank algorithm.
      * @param[in] tol Error tolerance for PageRank iteration.
      * @param[in] personalization Personalization vector for PageRank iteration.
+     * @param[in] mask Vector of Nodes to ignore for PageRank Calculation
      */
     PageRank(const Graph &G, double damp = DEFAULT_DAMP, double tol = DEFAULT_TOL,
-             const std::vector<node> &personalization = std::vector<node>());
+             const std::vector<node> &personalization = std::vector<node>(),
+             const std::vector<node> &mask = std::vector<node>());
 
     /**
      * Computes page rank on the graph passed in constructor.
@@ -73,6 +75,7 @@ private:
     double damp;
     double tol;
     const std::vector<node> personalization;
+    const std::vector<node> mask;
     count iterations;
 };
 

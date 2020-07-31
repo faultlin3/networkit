@@ -14,20 +14,33 @@
 namespace NetworKit {
 
 PageRank::PageRank(const Graph &G, double damp, double tol,
-                   const std::vector<node> &personalization)
-    : Centrality(G, true), damp(damp), tol(tol), personalization(personalization) {}
+                   const std::vector<node> &personalization, const std::vector<node> &mask)
+    : Centrality(G, true), damp(damp), tol(tol), personalization(personalization), mask(mask) {}
 
 void PageRank::run() {
+    // Verify the mask vector
+    std::vector<node>::const_iterator it;
+    auto m = mask.size();
+    for (it = mask.begin(); it != mask.end(); ++it) {
+        if (!G.hasNode(*it)) {
+            --m;
+            WARN("Node ", *it, " is in the masking vector but doesn't exist in the Graph");
+        }
+    }
+
     Aux::SignalHandler handler;
-    const auto n = G.numberOfNodes();
+    const auto n = G.numberOfNodes() - m;
     const auto z = G.upperNodeIdBound();
 
     auto teleportProb = (1.0 - damp) / static_cast<double>(n);
     scoreData.resize(z, 1.0 / static_cast<double>(n));
     std::vector<double> pr = scoreData;
 
+    std::vector<double> deg(z, 0.0);
+    G.parallelForNodes([&](const node u) { deg[u] = static_cast<double>(G.weightedDegree(u)); });
+    iterations = 0;
+
     // Verify the personalization vector
-    std::vector<node>::const_iterator it;
     auto p = personalization.size();
     for (it = personalization.begin(); it != personalization.end(); ++it) {
         if (!G.hasNode(*it)) {
@@ -36,17 +49,11 @@ void PageRank::run() {
         }
     }
 
-    std::vector<double> deg(z, 0.0);
-    G.parallelForNodes([&](const node u) { deg[u] = static_cast<double>(G.weightedDegree(u)); });
-
-    iterations = 0;
-
     bool isPersonalized = (p > 0);
     std::vector<bool> inPersonalization;
     std::function<void(node)> teleport;
     if (isPersonalized) {
         inPersonalization.resize(z, false);
-        std::vector<node>::const_iterator it;
         for (it = personalization.begin(); it != personalization.end(); ++it) {
             if (G.hasNode(*it)) {
                 inPersonalization[*it] = true;
@@ -61,6 +68,25 @@ void PageRank::run() {
         };
     } else {
         teleport = [&](const node u) { pr[u] += teleportProb; };
+    }
+
+    bool isMasked = (m > 0);
+    std::vector<bool> inMask;
+    if (isMasked) {
+        inMask.resize(z, false);
+        for (it = mask.begin(); it != mask.end(); ++it) {
+            if (G.hasNode(*it)) {
+                inMask[*it] = true;
+            }
+        }
+        // Prevent masked nodes from 'stealing' PageRank
+        G.balancedParallelForNodes([&](const node u) {
+            if (inMask[u]) {
+
+                G.forInEdgesOf(u,
+                               [&](const node u, const node v, const edgeweight w) { deg[v]--; });
+            }
+        });
     }
 
     auto sumL1Norm = [&](const node u) { return std::abs(scoreData[u] - pr[u]); };
@@ -87,6 +113,13 @@ void PageRank::run() {
         handler.assureRunning();
         G.balancedParallelForNodes([&](const node u) {
             pr[u] = 0.0;
+            if (isMasked) { // Ensure Masked Nodes don't Propagate PageRank by ensuring their PR
+                            // value stays at 0
+                if (inMask[u]) {
+                    return;
+                }
+            }
+
             G.forInEdgesOf(u, [&](const node u, const node v, const edgeweight w) {
                 // note: inconsistency in definition in Newman's book (Ch. 7) regarding directed
                 // graphs we follow the verbal description, which requires to sum over the incoming

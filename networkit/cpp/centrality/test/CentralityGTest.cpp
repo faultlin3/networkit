@@ -662,6 +662,39 @@ TEST_F(CentralityGTest, testPageRankEmptyPersonalization) {
     EXPECT_NEAR(pprcen[4], prcen[4], tol);
 }
 
+TEST_F(CentralityGTest, testPageRankWithMask) {
+    /* Graph:
+     0 --> 1 --> 2 --> 3 --> 4
+
+     All Edges with weight 1
+    */
+    /* Masked Set:
+     {0}
+    */
+    count n = 5;
+    Graph G(n, false, true);
+    
+    G.addEdge(0, 1);
+    G.addEdge(1, 2);
+    G.addEdge(2, 3);
+    G.addEdge(3, 4);
+
+    std::vector<node> personalization(0);
+    std::vector<node> mask(1, 0);
+
+    double damp = 0.85;
+    PageRank prcentrality(G, damp, PageRank::DEFAULT_TOL, personalization, mask);
+
+    prcentrality.run();
+    std::vector<double> prcen = prcentrality.scores();
+
+    double tol = 1e-4;
+    EXPECT_NEAR(0, prcen[0], tol);
+    EXPECT_NEAR(0.11616, fabs(prcen[1]), tol);
+    EXPECT_NEAR(0.21489, fabs(prcen[2]), tol);
+    EXPECT_NEAR(0.29881, fabs(prcen[3]), tol);
+    EXPECT_NEAR(0.37014, fabs(prcen[4]), tol);
+}
 
 TEST_F(CentralityGTest, benchSequentialBetweennessCentralityOnRealGraph) {
     METISGraphReader reader;
