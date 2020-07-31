@@ -36,8 +36,14 @@ void PageRank::run() {
         }
     }
 
+    std::vector<double> deg(z, 0.0);
+    G.parallelForNodes([&](const node u) { deg[u] = static_cast<double>(G.weightedDegree(u)); });
+
+    iterations = 0;
+
     bool isPersonalized = (p > 0);
     std::vector<bool> inPersonalization;
+    std::function<void(node)> teleport;
     if (isPersonalized) {
         inPersonalization.resize(z, false);
         std::vector<node>::const_iterator it;
@@ -48,22 +54,14 @@ void PageRank::run() {
         }
 
         teleportProb = (1.0 - damp) / static_cast<double>(p);
-    }
-
-    std::vector<double> deg(z, 0.0);
-    G.parallelForNodes([&](const node u) { deg[u] = static_cast<double>(G.weightedDegree(u)); });
-
-    iterations = 0;
-
-    auto teleport = [&](const node u) {
-        if (isPersonalized) {
+        teleport = [&](const node u) {
             if (inPersonalization[u]) {
                 pr[u] += teleportProb;
             }
-        } else {
-            pr[u] += teleportProb;
-        }
-    };
+        };
+    } else {
+        teleport = [&](const node u) { pr[u] += teleportProb; };
+    }
 
     auto sumL1Norm = [&](const node u) { return std::abs(scoreData[u] - pr[u]); };
 
