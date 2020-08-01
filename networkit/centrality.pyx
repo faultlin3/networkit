@@ -1737,7 +1737,7 @@ class Norm(object):
 cdef extern from "<networkit/centrality/PageRank.hpp>":
 
 	cdef cppclass _PageRank "NetworKit::PageRank" (_Centrality):
-		_PageRank(_Graph, double damp, double tol, vector[node] personalization) except +
+		_PageRank(_Graph, double damp, double tol, vector[node] personalization, vector[node] mask) except +
 		count numberOfIterations() except +
 		_Norm norm
 		count maxIterations
@@ -1745,7 +1745,7 @@ cdef extern from "<networkit/centrality/PageRank.hpp>":
 cdef class PageRank(Centrality):
 	""" Compute PageRank as node centrality measure.
 
-	PageRank(G, damp=0.85, tol=1e-9, personalization = [])
+	PageRank(G, damp=0.85, tol=1e-9, personalization = [], mask = [])
 
 	Parameters
 	----------
@@ -1757,11 +1757,13 @@ cdef class PageRank(Centrality):
 		Error tolerance for PageRank iteration.
 	personalization : List of Nodes
 		Personalization vector for the PageRank algortihm.
+	mask : List of Nodes
+		Nodes to be ignored for PageRank calculation.
 	"""
 
-	def __cinit__(self, Graph G, double damp=0.85, double tol=1e-9, personalization=[]):
+	def __cinit__(self, Graph G, double damp=0.85, double tol=1e-9, personalization=[], mask=[]):
 		self._G = G
-		self._this = new _PageRank(G._this, damp, tol, personalization)
+		self._this = new _PageRank(G._this, damp, tol, personalization, mask)
 
 	def numberOfIterations(self):
 		"""
